@@ -11,10 +11,28 @@ For plain-git workspaces it does nothing: the built-in git row is left untouched
 herdr lets a plugin report custom sidebar values as workspace **metadata tokens**
 (`$name` tokens in `ui.sidebar.spaces.rows`). This plugin populates two tokens:
 
-| token          | analogous to     | contents                                              |
-| -------------- | ---------------- | ----------------------------------------------------- |
-| `$jj_bookmark` | git `branch`     | local bookmark on `@`, else nearest ancestor bookmark, else the change id (+ description) |
-| `$jj_status`   | git `git_status` | `!` conflict · `+N` non-empty commits ahead of the bookmark · `*` uncommitted changes in `@` |
+| token          | analogous to     | contents |
+| -------------- | ---------------- | -------- |
+| `$jj_bookmark` | git `branch`     | where `@` is: the bookmark name(s) when you're on one; otherwise `<nearest>:: @<change-id>`; or just `@<change-id>` with no bookmark |
+| `$jj_status`   | git `git_status` | `! ↑A↓D *N` — conflict, remote ahead/behind, dirty file count |
+
+**`$jj_bookmark` examples:** `main` (on it) · `main:: @xyz` (on a descendant of
+`main`, currently at change `xyz`) · `@xyz` (no bookmark) · `feat wip` (two
+bookmarks) · `main??` (conflicted bookmark).
+
+`::` is jj's DAG-range operator (`foo::` = descendants of foo), so `foo:: @xyz`
+reads "in foo's descendants, at change `xyz`.
+
+**`$jj_status` glyphs:**
+
+| glyph | meaning |
+| ----- | ------- |
+| `!`    | working-copy commit `@` is conflicted |
+| `↑A` `↓D` | the bookmark is A ahead / D behind its remote (default `origin`) |
+| `*N`   | `@` is non-empty; N = changed files |
+
+Examples: `↑2` · `↓1 *3` · `!*2` · `↑2↓1`. Set `JJ_STATUS_REMOTE` to compare
+against a remote other than `origin`.
 
 **No background process.** herdr invokes a short-lived `bin/refresh.sh` on
 workspace/worktree events (and on demand via the `jj status: refresh all`
