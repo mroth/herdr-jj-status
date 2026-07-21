@@ -1,0 +1,34 @@
+id = "mroth.jj-status"
+name = "jj status"
+version = "0.1.0"
+min_herdr_version = "0.7.0"
+description = "Show the Jujutsu bookmark and status for jj workspaces in the spaces sidebar"
+platforms = ["macos", "linux"]
+
+# Manual / keybindable refresh. With no event context it sweeps every workspace.
+[[actions]]
+id = "refresh"
+title = "jj status: refresh all"
+contexts = ["workspace"]
+command = ["bash", "bin/refresh.sh"]
+
+# Event hooks. Each fires a short-lived refresh for the affected workspace
+# (herdr passes it via HERDR_PLUGIN_CONTEXT_JSON) — no background process.
+# Event names must use the dot form; underscore forms are rejected as unknown.
+# workspace.focused is the primary trigger (fires when you switch into a space,
+# i.e. exactly when you look at its sidebar row).
+[[events]]
+on = "workspace.focused"
+command = ["bash", "bin/refresh.sh"]
+
+[[events]]
+on = "workspace.created"
+command = ["bash", "bin/refresh.sh"]
+
+[[events]]
+on = "worktree.created"
+command = ["bash", "bin/refresh.sh"]
+
+[[events]]
+on = "worktree.opened"
+command = ["bash", "bin/refresh.sh"]
