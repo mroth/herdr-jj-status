@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (shellcheck)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Run shellcheck
+        run: shellcheck lib/compute.sh bin/refresh.sh test/compute_test.sh
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # jj isn't preinstalled. Resolve the latest stable release from the
+      # releases/latest redirect and install its binary.
+      - name: Install jj
+        run: |
+          url="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/jj-vcs/jj/releases/latest)"
+          tag="${url##*/tag/}"
+          echo "Installing jj $tag"
+          mkdir -p "$HOME/.local/bin"
+          tmp="$(mktemp -d)"
+          curl -fsSL "https://github.com/jj-vcs/jj/releases/download/${tag}/jj-${tag}-x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz -C "$tmp"
+          install -m755 "$tmp/jj" "$HOME/.local/bin/jj"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/jj" --version
+
+      - name: Run tests
+        run: bash test/compute_test.sh

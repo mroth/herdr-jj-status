@@ -30,6 +30,7 @@ Jujutsu (`jj`) bookmark/status in herdr's spaces sidebar, for `jj` workspaces.
 
 - Requires `jj` and `jq` on `PATH`.
 - After changing `compute.sh`, run `bash test/compute_test.sh`.
+- Verify any changed shell script with `shellcheck <file>` and fix its findings before considering the work done.
 - Version control: if a `.jj/` directory is present this is a Jujutsu repo
   (colocated with git) — use `jj` commands only, not `git`. If `.jj/` is absent,
   use `git`. Either way, commit/push only when asked.
