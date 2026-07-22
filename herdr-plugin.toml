@@ -1,9 +1,15 @@
 id = "mroth.jj-status"
 name = "jj status"
 version = "0.1.0"
-min_herdr_version = "0.7.0"
+min_herdr_version = "0.7.5"
 description = "Show the Jujutsu bookmark and status for jj workspaces in the spaces sidebar"
 platforms = ["macos", "linux"]
+
+# One-shot hook after server startup / live handoff: sweep every workspace so
+# rows are populated immediately instead of only after you first focus a space.
+# (Runs with no workspace context, which bin/refresh.sh treats as a full sweep.)
+[[startup]]
+command = ["bash", "bin/refresh.sh"]
 
 # Manual / keybindable refresh. With no event context it sweeps every workspace.
 [[actions]]

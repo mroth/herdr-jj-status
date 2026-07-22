@@ -5,8 +5,8 @@ Jujutsu (`jj`) bookmark/status in herdr's spaces sidebar, for `jj` workspaces.
 
 ## Layout
 
-- `herdr-plugin.toml` — manifest: the on-demand action and the herdr event hooks
-  that trigger a refresh.
+- `herdr-plugin.toml` — manifest: the startup hook, the on-demand action, and the
+  herdr event hooks that trigger a refresh.
 - `bin/refresh.sh` — short-lived hook herdr invokes; computes tokens for a
   workspace (or sweeps all) and reports them via `herdr workspace
   report-metadata`, then exits.

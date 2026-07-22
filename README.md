@@ -41,14 +41,16 @@ no pidfile, and there are no orphan processes. Every `jj` call is a pure read
 (`--ignore-working-copy --no-pager`), so the plugin never snapshots or mutates
 your working copy.
 
-Because herdr does not emit an event for commands typed inside a pane, a row
-refreshes when you **switch into** its space (`workspace.focused`), when a space
-or worktree is **created/opened**, or when you run the **refresh action**. Bind
-the action to a key for an instant manual refresh (see below).
+All rows are swept once at server **startup and after a live handoff** (a
+`[[startup]]` hook), so they're populated immediately. After that, because herdr
+emits no event for commands typed inside a pane, a row refreshes when you **switch
+into** its space (`workspace.focused`), when a space or worktree is
+**created/opened**, or when you run the **refresh action**. Bind the action to a
+key for an instant manual refresh (see below).
 
 ## Requirements
 
-- herdr ≥ 0.7.0
+- herdr ≥ 0.7.5
 - `jj` and `jq` on `PATH`
 
 ## Install
