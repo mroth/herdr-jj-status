@@ -34,19 +34,9 @@ reads "in foo's descendants, at change `xyz`.
 Examples: `↑2` · `↓1 *3` · `!*2` · `↑2↓1`. Set `JJ_STATUS_REMOTE` to compare
 against a remote other than `origin`.
 
-**No background process.** herdr invokes a short-lived `bin/refresh.sh` on
-workspace/worktree events (and on demand via the `jj status: refresh all`
-action); each run reports the tokens and exits. Nothing is daemonized, there is
-no pidfile, and there are no orphan processes. Every `jj` call is a pure read
-(`--ignore-working-copy --no-pager`), so the plugin never snapshots or mutates
-your working copy.
-
-All rows are swept once at server **startup and after a live handoff** (a
-`[[startup]]` hook), so they're populated immediately. After that, because herdr
-emits no event for commands typed inside a pane, a row refreshes when you **switch
-into** its space (`workspace.focused`), when a space or worktree is
-**created/opened**, or when you run the **refresh action**. Bind the action to a
-key for an instant manual refresh (see below).
+Rows refresh when you switch into a space or run the refresh action (and once at
+herdr startup). herdr has no event for commands run inside a pane, so a row won't
+update live while you stay put — switch away and back, or trigger the action.
 
 ## Requirements
 
@@ -106,23 +96,12 @@ herdr plugin action invoke refresh --plugin mroth.jj-status
 Bind that to a key via your herdr keybinding config if you want instant refresh
 after running `jj` commands without switching spaces.
 
-## Development
-
-```sh
-bash test/compute_test.sh   # dependency-free tests for the token computation
-bash bin/refresh.sh         # sweep all workspaces once (against a running herdr)
-```
-
-- `lib/compute.sh <dir>` — pure: prints `<jj_bookmark>\t<jj_status>` for a repo
-  dir, exit 3 if not a jj repo.
-- `bin/refresh.sh` — reports tokens for the event's workspace
-  (`HERDR_PLUGIN_CONTEXT_JSON`) or, with no context, sweeps all workspaces.
-
 ## Uninstall
 
 ```sh
-herdr plugin unlink mroth.jj-status   # linked local plugin
-# herdr plugin uninstall mroth.jj-status
+herdr plugin uninstall mroth.jj-status   # installed from GitHub
+# …or, if you linked a local checkout:
+herdr plugin unlink mroth.jj-status
 ```
 
 Remove the `$jj_bookmark` / `$jj_status` tokens from `ui.sidebar.spaces.rows` and
