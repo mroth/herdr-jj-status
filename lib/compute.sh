@@ -33,13 +33,12 @@ jj=(jj --no-pager --ignore-working-copy -R "$dir")
 BM_T='local_bookmarks.map(|b| b.name() ++ if(b.conflict(), "??", "")).join(" ")'
 
 tmpl() { "${jj[@]}" log -r "$1" --no-graph -T "$2" 2>/dev/null; }
-count() { "${jj[@]}" log -r "$1" --no-graph -T '"x\n"' 2>/dev/null | grep -c 'x'; }
-revset_ok() { "${jj[@]}" log -r "$1" --no-graph -T '""' >/dev/null 2>&1; }
 
 # Every fact about @ in one read (pipe-delimited so empty fields survive parsing;
-# a tab IFS would collapse them). A failure here also means "not a jj repo".
-at="$(tmpl '@' 'if(conflict,"1","") ++ "|" ++ if(empty,"1","") ++ "|" ++ if(divergent,"1","") ++ "|" ++ change_id.shortest() ++ "|" ++ '"$BM_T")" || exit 3
-IFS='|' read -r is_conflict is_empty is_divergent changeid bookmark <<<"$at"
+# a tab IFS would collapse them). Includes the dirty file count. A failure here
+# also means "not a jj repo".
+at="$(tmpl '@' 'if(conflict,"1","") ++ "|" ++ if(empty,"1","") ++ "|" ++ if(divergent,"1","") ++ "|" ++ change_id.shortest() ++ "|" ++ self.diff().files().len() ++ "|" ++ '"$BM_T")" || exit 3
+IFS='|' read -r is_conflict is_empty is_divergent changeid files bookmark <<<"$at"
 
 # --- $jj_bookmark ---------------------------------------------------------
 # bmname = the single bookmark used for remote comparison ("" if none).
@@ -64,19 +63,21 @@ fi
 # --- $jj_status : "! ↑A↓D *N" --------------------------------------------
 conflict=""; [ -n "$is_conflict" ] && conflict="!"
 
+# Remote ahead/behind in a single call: over the union of both ranges, tag each
+# commit by which side it's on. A failing call means the bookmark has no remote.
 remote_group=""
-if [ -n "$bmname" ] && revset_ok "${bmname}@${remote}"; then
-  ahead=$(count "${bmname}@${remote}..${bmname}")
-  behind=$(count "${bmname}..${bmname}@${remote}")
-  [ "$ahead" -gt 0 ] && remote_group+="↑${ahead}"
-  [ "$behind" -gt 0 ] && remote_group+="↓${behind}"
+if [ -n "$bmname" ]; then
+  ahead_rs="${bmname}@${remote}..${bmname}"
+  behind_rs="${bmname}..${bmname}@${remote}"
+  if sides="$("${jj[@]}" log -r "${ahead_rs} | ${behind_rs}" --no-graph \
+       -T 'if(self.contained_in("'"$ahead_rs"'"), "a\n", "b\n")' 2>/dev/null)"; then
+    ahead=$(grep -c a <<<"$sides"); behind=$(grep -c b <<<"$sides")
+    [ "$ahead" -gt 0 ] && remote_group+="↑${ahead}"
+    [ "$behind" -gt 0 ] && remote_group+="↓${behind}"
+  fi
 fi
 
-dirty=""
-if [ -z "$is_empty" ]; then
-  files=$("${jj[@]}" diff -r '@' --summary 2>/dev/null | grep -c .)
-  dirty="*${files}"
-fi
+dirty=""; [ -z "$is_empty" ] && dirty="*${files}"
 
 # Assemble: conflict+remote joined tight; a space before dirty only when a remote
 # group is present (e.g. "↓1 *1", but "!*2" and "*2").
