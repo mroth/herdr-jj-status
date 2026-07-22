@@ -56,11 +56,11 @@ key for an instant manual refresh (see below).
 ## Install
 
 ```sh
-# Local checkout:
-herdr plugin link /path/to/herdr-jj-status
+# From GitHub:
+herdr plugin install mroth/herdr-jj-status
 
-# …or from GitHub once published:
-# herdr plugin install <owner>/herdr-jj-status
+# …or from a local checkout (for development):
+herdr plugin link /path/to/herdr-jj-status
 ```
 
 Confirm it linked:
