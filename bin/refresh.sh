@@ -3,9 +3,12 @@
 # workspaces, then exit. herdr invokes this from [[events]] hooks and the
 # [[actions]] entry; there is no long-lived process and nothing persists here.
 #
-# Event hook:  HERDR_PLUGIN_CONTEXT_JSON identifies the affected workspace, so we
-#              refresh just that one (no api snapshot needed).
-# Action/none: no context -> sweep every workspace via `herdr api snapshot`.
+# Scope is decided by HERDR_PLUGIN_EVENT, *not* by whether context is present:
+# herdr populates HERDR_PLUGIN_CONTEXT_JSON with the focused workspace for every
+# invocation, including [[startup]] and [[actions]], so "no context" never happens.
+#
+# workspace.* / worktree.* event: refresh just the workspace named in the context.
+# Anything else (startup, action, manual run): sweep via `herdr api snapshot`.
 
 set -u
 
@@ -19,9 +22,12 @@ MAXLEN=48   # keep sidebar tokens compact
 report() {
   local wsid="$1" cwd="$2" line bookmark status
   [ -n "$wsid" ] || return 0
+  # No cwd yet (panes still spawning during the startup sweep): leave whatever
+  # tokens are there rather than clearing them on a race.
+  [ -n "$cwd" ] || return 0
 
-  if [ -z "$cwd" ] || ! line="$(bash "$COMPUTE" "$cwd")"; then
-    # Not a jj repo (or no cwd): clear tokens so nothing stale lingers.
+  if ! line="$(bash "$COMPUTE" "$cwd")"; then
+    # Not a jj repo: clear tokens so nothing stale lingers.
     "$HERDR" workspace report-metadata "$wsid" --source "$SOURCE" \
       --clear-token jj_bookmark --clear-token jj_status >/dev/null 2>&1
     return 0
@@ -36,9 +42,16 @@ report() {
     --token "jj_bookmark=$bookmark" --token "jj_status=$status" >/dev/null 2>&1
 }
 
-# --- single workspace from the event context, if present ---
+# --- single workspace, for a per-workspace event hook ---
+# Allowlist rather than "startup is the exception": anything we don't recognise as
+# scoped to one workspace (startup, the action, a manual run) sweeps instead.
+event="${HERDR_PLUGIN_EVENT:-}"
 ctx="${HERDR_PLUGIN_CONTEXT_JSON:-}"
-if [ -n "$ctx" ]; then
+case "$event" in
+  workspace.*|worktree.*) scoped=1 ;;
+  *)                      scoped=0 ;;
+esac
+if [ "$scoped" -eq 1 ] && [ -n "$ctx" ]; then
   wsid="$(printf '%s' "$ctx" | jq -r '.workspace_id // empty' 2>/dev/null)"
   if [ -n "$wsid" ]; then
     cwd="$(printf '%s' "$ctx" | jq -r '.workspace_cwd // .focused_pane_cwd // empty' 2>/dev/null)"
@@ -47,7 +60,7 @@ if [ -n "$ctx" ]; then
   fi
 fi
 
-# --- sweep all workspaces (action / no context) ---
+# --- sweep all workspaces (startup / action / manual run) ---
 # Map each workspace to its focused pane's cwd (else its first pane's cwd).
 snap="$("$HERDR" api snapshot 2>/dev/null)" || exit 0
 printf '%s' "$snap" | jq -r '

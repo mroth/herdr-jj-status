@@ -25,6 +25,14 @@ Jujutsu (`jj`) bookmark/status in herdr's spaces sidebar, for `jj` workspaces.
 - **jj reads must be pure.** Every `jj` call uses `--no-pager
   --ignore-working-copy`, so reading status never snapshots or mutates the working
   copy. Keep it that way.
+- **Scope comes from `HERDR_PLUGIN_EVENT`, never from "is context set".** herdr
+  fills `HERDR_PLUGIN_CONTEXT_JSON` with the *focused* workspace on every
+  invocation — startup hooks and actions included — so an absent context is not a
+  signal. `bin/refresh.sh` therefore allowlists the scoped cases — it refreshes a
+  single workspace only for a `workspace.*`/`worktree.*` event, and sweeps for
+  everything else (startup, the action — which sets `HERDR_PLUGIN_ACTION_ID` and
+  no `HERDR_PLUGIN_EVENT` — and a manual run). Treating a present context as
+  "refresh only this one" silently reduced the startup sweep to a single space.
 
 ## Working here
 

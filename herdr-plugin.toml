@@ -1,17 +1,20 @@
 id = "mroth.jj-status"
 name = "jj status"
-version = "0.1.0"
+version = "0.1.1"
 min_herdr_version = "0.7.5"
 description = "Show the Jujutsu bookmark and status for jj workspaces in the spaces sidebar"
 platforms = ["macos", "linux"]
 
 # One-shot hook after server startup / live handoff: sweep every workspace so
 # rows are populated immediately instead of only after you first focus a space.
-# (Runs with no workspace context, which bin/refresh.sh treats as a full sweep.)
+# NB: herdr still sets HERDR_PLUGIN_CONTEXT_JSON here (the focused workspace);
+# bin/refresh.sh sweeps because HERDR_PLUGIN_EVENT is not a per-workspace event,
+# not because the context is absent.
 [[startup]]
 command = ["bash", "bin/refresh.sh"]
 
-# Manual / keybindable refresh. With no event context it sweeps every workspace.
+# Manual / keybindable refresh. Sweeps every workspace: no HERDR_PLUGIN_EVENT is
+# set for actions, so bin/refresh.sh takes the sweep path.
 [[actions]]
 id = "refresh"
 title = "jj status: refresh all"
